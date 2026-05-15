@@ -3,8 +3,10 @@ __pycache__/
 *.pyc
 .env
 mlruns/
-models/champions/
-logs/
+models/champions/*
+!models/champions/.gitkeep
+logs/*
+!logs/.gitkeep
 .DS_Store
 *.egg-info/
 dist/

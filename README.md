@@ -1,114 +1,111 @@
-# AI Business Intelligence App 🧠
+# AI Business Intelligence App
 
-Application complète de **Machine Learning** et **MLOps** pour l'analyse de données business.
+Application complète de **Machine Learning**, **MLOps** et **IA générative** pour l'analyse de données business.
 
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-ff4b4b?logo=streamlit)](https://streamlit.io)
 [![MLflow](https://img.shields.io/badge/MLflow-Tracking-0194e2?logo=mlflow)](https://mlflow.org)
 [![DagsHub](https://img.shields.io/badge/DagsHub-Repo-9B59B6)](https://dagshub.com)
 
+**Liens du projet :**
+- GitHub : https://github.com/aminexfrad/ai_business_app
+- DagsHub : https://dagshub.com/aminexfrad/ai_business_app
+- Présentation orale : voir [PRESENTATION.md](PRESENTATION.md)
+- Livrables examen : voir [LIVRABLES.md](LIVRABLES.md)
+
 ---
 
-## 📋 Description
+## Description
 
-Cette application analyse **4 jeux de données business** et entraîne automatiquement des modèles de Machine Learning pour chacun :
+La plateforme analyse **4 jeux de données business** et entraîne automatiquement des modèles ML pour chacun :
 
 | Dataset | Tâche | Cible |
-|---|---|---|
-| 🏢 Énergie Bâtiments | Régression | `energy_consumption` |
-| 🍽️ Revenus Restaurants | Régression | `monthly_revenue` |
-| 🔒 Détection Fraude | Classification | `fraud` |
-| 📺 Résiliation Streaming | Classification | `subscription_cancelled` |
+|---------|-------|-------|
+| Énergie Bâtiments | Régression | `energy_consumption` |
+| Revenus Restaurants | Régression | `monthly_revenue` |
+| Détection Fraude | Classification | `fraud` |
+| Résiliation Streaming | Classification | `subscription_cancelled` |
 
-### Modèles entraînés
+### Modèles comparés
 
 - **Régression** : Linear Regression, Random Forest, XGBoost, Gradient Boosting
 - **Classification** : Logistic Regression, Random Forest, XGBoost, Gradient Boosting
 
-Le **meilleur modèle** (champion) est automatiquement sélectionné selon R² (régression) ou F1-Score (classification).
+Le **modèle champion** (meilleur R² ou F1) est tagué dans MLflow et chargé automatiquement par l'application Streamlit.
 
 ---
 
-## 🚀 Installation locale
+## Fonctionnalités (conformité examen)
+
+| Partie | Fonctionnalité | Fichier |
+|--------|----------------|---------|
+| **1 — ML & MLOps** | Nettoyage, imputation, encodage, split | `data_preprocessing.py` |
+| | Entraînement multi-modèles + tracking MLflow/DagsHub | `train_models.py` |
+| | Champion auto + tag `champion=true` | `train_models.py` |
+| | Chargement champion depuis MLflow | `utils.py` |
+| **2 — Streamlit** | 5 onglets (Présentation, Unitaire, Batch, Gemini, Dashboard) | `app.py` |
+| **3 — Cloud** | Secrets `.env` / Streamlit | `.env.example`, `.streamlit/` |
+| **4 — Logging** | Prédictions, uploads, interactions, Gemini | `logs/actions.csv` |
+
+---
+
+## Installation locale
 
 ```bash
-# 1. Cloner le repo
-git clone https://github.com/<votre-user>/ai_business_app.git
+git clone https://github.com/aminexfrad/ai_business_app.git
 cd ai_business_app
 
-# 2. Créer un environnement virtuel
 python -m venv venv
-venv\Scripts\activate       # Windows
-# source venv/bin/activate  # Mac/Linux
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # Linux/Mac
 
-# 3. Installer les dépendances
 pip install -r requirements.txt
 
-# 4. Configurer l'environnement
 cp .env.example .env
-# Remplir DAGSHUB_USERNAME, DAGSHUB_TOKEN, GOOGLE_API_KEY dans .env
+# Remplir DAGSHUB_USERNAME, DAGSHUB_TOKEN, GOOGLE_API_KEY
 
-# 5. Entraîner les modèles
 python train_models.py
-
-# 6. Lancer l'application
 streamlit run app.py
 ```
 
 ---
 
-## 📁 Structure du projet
+## Structure du projet
 
 ```
 ai_business_app/
-├── data/
-│   ├── building_energy_regression_realistic.csv
-│   ├── restaurant_revenue_regression_realistic.csv
-│   ├── fraud_detection_classification_realistic.csv
-│   └── streaming_subscription_classification_realistic.csv
-├── models/
-│   └── champions/           # Modèles champions sauvegardés
-├── logs/
-│   └── actions.csv          # Logs des actions utilisateur
-├── app.py                   # Application Streamlit (5 onglets)
-├── data_preprocessing.py    # Chargement, nettoyage, encodage, split
-├── train_models.py          # Entraînement + tracking MLflow
-├── mlflow_tracking.py       # Configuration DagsHub / MLflow
-├── utils.py                 # Logging, chargement champion, prédiction
+├── data/                    # 4 datasets CSV
+├── models/champions/        # Sauvegarde locale (fallback)
+├── logs/                    # Journal MLOps (actions.csv)
+├── app.py                   # Application Streamlit
+├── data_preprocessing.py    # Pipeline données
+├── train_models.py          # Entraînement + MLflow
+├── mlflow_tracking.py       # Configuration DagsHub
+├── utils.py                 # Champion, prédictions, logs
+├── PRESENTATION.md          # Guide soutenance 5 min
+├── LIVRABLES.md             # Liens et checklist examen
 ├── requirements.txt
-├── .env.example
-└── README.md
+└── .streamlit/
+    ├── config.toml
+    └── secrets.toml.example
 ```
 
 ---
 
-## 🔧 Technologies
+## Déploiement Streamlit Cloud
 
-- **Python 3.10+**
-- **Streamlit** — Interface web interactive
-- **scikit-learn / XGBoost** — Modèles ML
-- **MLflow** — Tracking des expériences
-- **DagsHub** — Hébergement MLflow distant
-- **Google Gemini** — Analyse IA générative
-- **Plotly** — Visualisations interactives
+1. Pousser le code sur GitHub.
+2. Exécuter `python train_models.py` pour enregistrer les runs sur DagsHub.
+3. Déployer sur [share.streamlit.io](https://share.streamlit.io) avec `app.py`.
+4. Configurer les secrets (voir `.streamlit/secrets.toml.example`).
 
----
-
-## ☁️ Déploiement Streamlit Cloud
-
-1. Pousser le repo sur GitHub.
-2. Aller sur [share.streamlit.io](https://share.streamlit.io).
-3. Connecter le repo, spécifier `app.py`.
-4. Ajouter les secrets dans **Settings → Secrets** :
-
-```toml
-DAGSHUB_USERNAME = "votre_username"
-DAGSHUB_TOKEN = "votre_token"
-DAGSHUB_REPO_NAME = "ai_business_app"
-GOOGLE_API_KEY = "votre_clé_gemini"
-```
+L'application charge le champion depuis **MLflow/DagsHub** en priorité.
 
 ---
 
-## 📝 Licence
+## Technologies
 
-Projet académique — Examen MLOps.
+Python · Streamlit · scikit-learn · XGBoost · MLflow · DagsHub · Google Gemini · Plotly · Git/GitHub
+
+---
+
+Projet académique — Examen MLOps & IA Générative.

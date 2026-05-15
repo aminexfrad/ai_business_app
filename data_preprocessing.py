@@ -8,7 +8,6 @@ pour les 4 jeux de données du projet AI Business Intelligence.
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 import os
 
 # ─── Registre des datasets ────────────────────────────────────────────────────
@@ -157,6 +156,26 @@ def get_feature_info(dataset_key: str) -> dict:
                 "mean": float(df[col].mean()),
             }
     return info
+
+
+def get_categorical_columns(dataset_key: str) -> list[str]:
+    """Colonnes catégorielles brutes (hors cible) pour un dataset."""
+    df = load_data(dataset_key)
+    target = DATASETS[dataset_key]["target"]
+    cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    return [c for c in cat_cols if c != target]
+
+
+def encode_for_prediction(df: pd.DataFrame, dataset_key: str, expected_features: list[str]) -> pd.DataFrame:
+    """
+    Encode un DataFrame brut et aligne les colonnes sur celles du modèle entraîné.
+    """
+    target = DATASETS[dataset_key]["target"]
+    if target in df.columns:
+        df = df.drop(columns=[target])
+    df = clean_data(df)
+    df = encode_features(df, target)
+    return df.reindex(columns=expected_features, fill_value=0)
 
 
 def prepare_dataset(dataset_key: str):

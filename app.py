@@ -14,18 +14,65 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dotenv import load_dotenv
 
-from data_preprocessing import DATASETS, load_data, clean_data, encode_features, get_feature_info, prepare_dataset
+# Secrets Streamlit Cloud -> variables d'environnement
+try:
+    for _secret_key in ("DAGSHUB_USERNAME", "DAGSHUB_TOKEN", "DAGSHUB_REPO_NAME", "GOOGLE_API_KEY"):
+        if _secret_key in st.secrets:
+            os.environ[_secret_key] = str(st.secrets[_secret_key])
+except Exception:
+    pass
+
+load_dotenv()
+
+from data_preprocessing import DATASETS, load_data, get_feature_info
+from mlflow_tracking import get_dagshub_url
 from utils import (
     log_action,
     load_champion,
     predict_single,
     predict_batch,
-    get_champion_metrics,
-    get_champion_name,
     get_all_champions_summary,
+    get_action_logs,
 )
 
-load_dotenv()
+GEMINI_MODELS = ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite")
+
+
+@st.cache_resource(show_spinner="Chargement du modele champion...")
+def cached_load_champion(dataset_key: str):
+    return load_champion(dataset_key)
+
+
+@st.cache_data(show_spinner=False, ttl=600)
+def cached_champions_summary():
+    return get_all_champions_summary()
+
+
+@st.cache_data(show_spinner=False)
+def cached_dataset(dataset_key: str):
+    return load_data(dataset_key)
+
+
+@st.cache_data(show_spinner=False)
+def cached_feature_info(dataset_key: str):
+    return get_feature_info(dataset_key)
+
+
+def run_gemini_analysis(api_key: str, full_prompt: str) -> str:
+    import google.generativeai as genai
+
+    genai.configure(api_key=api_key)
+    last_error = None
+    for model_name in GEMINI_MODELS:
+        try:
+            model_genai = genai.GenerativeModel(model_name)
+            response = model_genai.generate_content(full_prompt)
+            if response.text:
+                return response.text
+        except Exception as e:
+            last_error = e
+    raise RuntimeError(f"Aucun modele Gemini disponible. Derniere erreur: {last_error}")
+
 
 # ─── Page config ───────────────────────────────────────────────────────────────
 
@@ -128,8 +175,16 @@ with st.sidebar:
     st.markdown(f"**Tâche** : `{task}`")
     st.markdown(f"**Cible** : `{DATASETS[dataset_key]['target']}`")
 
-    champion_name = get_champion_name(dataset_key)
-    st.markdown(f"**Champion** : `{champion_name}`")
+    _model, _meta = cached_load_champion(dataset_key)
+    if _meta:
+        st.markdown(f"**Champion** : `{_meta.get('model_name', 'Inconnu')}`")
+        st.markdown(f"**Source** : `{_meta.get('source', 'local')}`")
+    else:
+        st.markdown("**Champion** : `Non entraine`")
+
+    dagshub_url = get_dagshub_url()
+    if dagshub_url:
+        st.markdown(f"[DagsHub / MLflow]({dagshub_url})")
 
     st.markdown("---")
     st.markdown(
@@ -138,7 +193,11 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-log_action("page_view", f"dataset={dataset_key}")
+if st.session_state.get("last_logged_dataset") != dataset_key:
+    log_action("page_view", f"dataset={dataset_key}")
+    st.session_state["last_logged_dataset"] = dataset_key
+
+champion_model, champion_meta = cached_load_champion(dataset_key)
 
 # ─── Header ────────────────────────────────────────────────────────────────────
 
@@ -180,12 +239,17 @@ with tab1:
         4. **Split** train / test (80 / 20)
         5. **Entraînement** de 4 modèles par dataset
         6. **Tracking** dans MLflow / DagsHub
-        7. **Sélection** automatique du champion
+        7. **Sélection** automatique du champion (tag MLflow `champion=true`)
+        8. **Chargement** automatique du champion depuis MLflow dans l'app
         """)
+
+        dagshub_url = get_dagshub_url()
+        if dagshub_url:
+            st.markdown(f"**Suivi des expériences** : [DagsHub]({dagshub_url})")
 
     with col_stats:
         try:
-            df_raw = load_data(dataset_key)
+            df_raw = cached_dataset(dataset_key)
             st.markdown("### 📊 Statistiques du dataset")
 
             m1, m2, m3 = st.columns(3)
@@ -204,7 +268,7 @@ with tab1:
     # Résumé des champions
     st.markdown("---")
     st.markdown("### 🏆 Résumé des modèles champions")
-    summary = get_all_champions_summary()
+    summary = cached_champions_summary()
     if not summary.empty:
         st.dataframe(summary, use_container_width=True, hide_index=True)
     else:
@@ -219,14 +283,18 @@ with tab2:
     st.header("🎯 Prédiction unitaire")
     st.markdown("Saisissez les caractéristiques ci-dessous pour obtenir une prédiction du modèle champion.")
 
-    model, meta = load_champion(dataset_key)
-    if model is None:
+    if champion_model is None:
         st.warning("⚠️ Aucun champion trouvé. Lancez `python train_models.py` d'abord.")
     else:
-        st.markdown(f'<span class="champion-badge">🏆 {meta["model_name"]}</span>', unsafe_allow_html=True)
-        st.markdown("")
+        source_label = champion_meta.get("source", "local")
+        st.markdown(
+            f'<span class="champion-badge">🏆 {champion_meta["model_name"]} ({source_label})</span>',
+            unsafe_allow_html=True,
+        )
+        if champion_meta.get("mlflow_run_id"):
+            st.caption(f"MLflow run: `{champion_meta['mlflow_run_id']}`")
 
-        feature_info = get_feature_info(dataset_key)
+        feature_info = cached_feature_info(dataset_key)
 
         # Formulaire dynamique
         with st.form("prediction_form"):
@@ -254,7 +322,12 @@ with tab2:
 
         if submitted:
             try:
-                result = predict_single(dataset_key, input_values)
+                result = predict_single(
+                    dataset_key,
+                    input_values,
+                    model=champion_model,
+                    meta=champion_meta,
+                )
 
                 st.markdown("---")
                 if task == "regression":
@@ -276,8 +349,7 @@ with tab3:
     st.header("📦 Prédiction batch")
     st.markdown("Uploadez un fichier CSV contenant les mêmes features que le dataset original.")
 
-    model, meta = load_champion(dataset_key)
-    if model is None:
+    if champion_model is None:
         st.warning("⚠️ Aucun champion trouvé. Lancez `python train_models.py` d'abord.")
     else:
         uploaded_file = st.file_uploader("📂 Choisir un fichier CSV", type=["csv"], key="batch_upload")
@@ -285,6 +357,7 @@ with tab3:
         if uploaded_file is not None:
             try:
                 df_upload = pd.read_csv(uploaded_file)
+                log_action("csv_upload", f"dataset={dataset_key}, rows={len(df_upload)}")
                 st.markdown(f"**{len(df_upload)} lignes** chargées.")
 
                 with st.expander("👀 Aperçu des données uploadées"):
@@ -292,7 +365,12 @@ with tab3:
 
                 if st.button("🚀 Lancer les prédictions", use_container_width=True):
                     with st.spinner("Prédiction en cours…"):
-                        df_result = predict_batch(dataset_key, df_upload)
+                        df_result = predict_batch(
+                            dataset_key,
+                            df_upload,
+                            model=champion_model,
+                            meta=champion_meta,
+                        )
 
                     st.success(f"✅ {len(df_result)} prédictions effectuées !")
 
@@ -328,15 +406,13 @@ with tab4:
             "ou dans les secrets Streamlit Cloud."
         )
     else:
-        champion_name = get_champion_name(dataset_key)
-        metrics = get_champion_metrics(dataset_key)
+        metrics = champion_meta.get("metrics", {}) if champion_meta else {}
         task_type = DATASETS[dataset_key]["task"]
 
-        # Contexte automatique
         context_parts = [
             f"Dataset : {dataset_key}",
             f"Tâche : {task_type}",
-            f"Modèle champion : {champion_name}",
+            f"Modèle champion : {champion_meta.get('model_name', 'N/A') if champion_meta else 'N/A'}",
         ]
         if metrics:
             context_parts.append(f"Métriques : {metrics}")
@@ -355,11 +431,6 @@ with tab4:
 
         if st.button("🧠 Générer l'analyse", use_container_width=True):
             try:
-                import google.generativeai as genai
-
-                genai.configure(api_key=api_key)
-                model_genai = genai.GenerativeModel("gemini-2.0-flash")
-
                 full_prompt = (
                     "Tu es un expert Data Scientist / MLOps. Voici le contexte :\n"
                     + "\n".join(context_parts)
@@ -368,12 +439,12 @@ with tab4:
                     + "\n\nRéponds en français avec des sections structurées (Markdown)."
                 )
 
-                with st.spinner("Gemini réfléchit… 🤔"):
-                    response = model_genai.generate_content(full_prompt)
+                with st.spinner("Gemini réfléchit…"):
+                    analysis_text = run_gemini_analysis(api_key, full_prompt)
 
                 st.markdown("---")
                 st.markdown("### 📝 Analyse générée")
-                st.markdown(response.text)
+                st.markdown(analysis_text)
 
                 log_action("gemini_analysis", f"dataset={dataset_key}, prompt_length={len(user_prompt)}")
             except Exception as e:
@@ -388,15 +459,15 @@ with tab5:
     st.header("📊 Dashboard & Visualisations")
 
     try:
-        df_raw = load_data(dataset_key)
+        df_raw = cached_dataset(dataset_key)
         target = DATASETS[dataset_key]["target"]
 
         # ── Métriques du champion ──────────────────────────────────────────────
-        metrics = get_champion_metrics(dataset_key)
+        metrics = champion_meta.get("metrics", {}) if champion_meta else {}
         if metrics:
             st.markdown("### 🏆 Métriques du modèle champion")
             st.markdown(
-                f'<span class="champion-badge">🏆 {get_champion_name(dataset_key)}</span>',
+                f'<span class="champion-badge">🏆 {champion_meta.get("model_name", "Inconnu")}</span>',
                 unsafe_allow_html=True,
             )
             st.markdown("")
@@ -485,6 +556,14 @@ with tab5:
                     )
                     fig_cat.update_layout(height=350)
                     st.plotly_chart(fig_cat, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("### 📋 Journal des actions (MLOps)")
+        logs_df = get_action_logs(limit=50)
+        if logs_df.empty:
+            st.info("Aucune action enregistrée pour le moment.")
+        else:
+            st.dataframe(logs_df, use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"Erreur : {e}")
