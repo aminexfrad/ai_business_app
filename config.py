@@ -26,6 +26,7 @@ MLFLOW_TRACKING_URI = (
 
 # ─── Google Gemini ────────────────────────────────────────────────────────────
 GOOGLE_API_KEY = _get("GOOGLE_API_KEY")
+GEMINI_MODEL = _get("GEMINI_MODEL")  # optional; empty = try several models
 
 # ─── Datasets ────────────────────────────────────────────────────────────────
 DATASETS = {

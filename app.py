@@ -492,7 +492,7 @@ with tab3:
                         st.markdown(txt)
                         logger.log_gemini_query(dataset_choice, "prediction interpretation")
                     except Exception as e:
-                        st.error(f"Gemini : {e}")
+                        st.error(gemini_ai.user_error_message(e))
 
         except Exception as e:
             st.error(f"Erreur de prédiction : {e}")
@@ -615,8 +615,7 @@ with tab5:
                     st.markdown(response)
                     logger.log_gemini_query(dataset_choice, user_q or "full analysis")
                 except Exception as e:
-                    st.error(f"Erreur Gemini API : {e}")
-                    st.markdown('<div class="err">Vérifiez votre <code>GOOGLE_API_KEY</code> dans le fichier .env ou les secrets Streamlit.</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="err">{gemini_ai.user_error_message(e)}</div>', unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -714,12 +713,16 @@ with tab6:
         colors = px.colors.qualitative.Bold
         for i, mname in enumerate(comp_df["Modèle"]):
             vals = comp_df[comp_df["Modèle"] == mname][metric_cols].values.flatten()
-            fig_comp.add_trace(go.Bar(
-                name=mname, x=metric_cols, y=vals,
+            bar_kwargs = dict(
+                name=mname,
+                x=metric_cols,
+                y=vals,
                 marker_color=colors[i % len(colors)],
-                marker_line_width=2 if mname == champ else 0,
-                marker_line_color="#b91c1c" if mname == champ else "transparent",
-            ))
+            )
+            if mname == champ:
+                bar_kwargs["marker_line_width"] = 2
+                bar_kwargs["marker_line_color"] = "#b91c1c"
+            fig_comp.add_trace(go.Bar(**bar_kwargs))
         fig_comp.update_layout(barmode="group", template="plotly_white",
                                title="Toutes les métriques — Comparaison des modèles",
                                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
