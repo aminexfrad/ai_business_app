@@ -29,33 +29,29 @@ GOOGLE_API_KEY = _get("GOOGLE_API_KEY")
 
 # ─── Datasets ────────────────────────────────────────────────────────────────
 DATASETS = {
-    "🏢 Building Energy (Regression)": {
+    "Building Energy (Regression)": {
         "file": "building_energy_regression_realistic.csv",
         "target": "energy_consumption",
         "task": "regression",
         "description": "Predict building energy consumption based on surface, temperature, occupancy, etc.",
-        "icon": "🏢",
     },
-    "🍽️ Restaurant Revenue (Regression)": {
+    "Restaurant Revenue (Regression)": {
         "file": "restaurant_revenue_regression_realistic.csv",
         "target": "monthly_revenue",
         "task": "regression",
         "description": "Predict monthly restaurant revenue from customers, orders, marketing spend, etc.",
-        "icon": "🍽️",
     },
-    "🔍 Fraud Detection (Classification)": {
+    "Fraud Detection (Classification)": {
         "file": "fraud_detection_classification_realistic.csv",
         "target": "fraud",
         "task": "classification",
         "description": "Detect fraudulent transactions based on amount, frequency, risk scores, etc.",
-        "icon": "🔍",
     },
-    "📺 Streaming Churn (Classification)": {
+    "Streaming Churn (Classification)": {
         "file": "streaming_subscription_classification_realistic.csv",
         "target": "subscription_cancelled",
         "task": "classification",
         "description": "Predict subscription cancellation from watch time, cost, support requests, etc.",
-        "icon": "📺",
     },
 }
 
