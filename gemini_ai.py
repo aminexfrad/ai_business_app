@@ -7,7 +7,7 @@ import config
 def init_gemini():
     """Initialize Gemini client."""
     genai.configure(api_key=config.GOOGLE_API_KEY)
-    return genai.GenerativeModel("gemini-1.5-flash")
+    return genai.GenerativeModel("gemini-2.0-flash")
 
 
 def analyze_dataset(df: pd.DataFrame, dataset_name: str,
