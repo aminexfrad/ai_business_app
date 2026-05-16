@@ -639,7 +639,7 @@ with tab6:
                                 title=f"{feat_x} vs {target4}",
                                 color_discrete_sequence=px.colors.qualitative.Bold)
         else:
-            fig_sc = px.box(df, x=target4.replace(target4, str(target4)), y=feat_x,
+            fig_sc = px.box(df, x=str(target4), y=feat_x,
                             color=str(target4), template="plotly_dark",
                             title=f"{feat_x} par classe de {target4}",
                             color_discrete_sequence=["#3b82f6","#ef4444"])
