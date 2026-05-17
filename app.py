@@ -191,11 +191,10 @@ with st.sidebar:
     st.markdown(f"[DagsHub / MLflow]({dagshub_url}.mlflow)")
     st.markdown(f"[GitHub](https://github.com/{config.DAGSHUB_USERNAME}/{config.DAGSHUB_REPO})")
     st.markdown("---")
-    st.caption("MLOps Exam · 2024 · aminexfrad")
+    st.caption("MLOps Exam · 2026 · aminexfrad")
 
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "Présentation",
+tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Entraînement & MLflow",
     "Prédiction Unitaire",
     "Prédiction Batch CSV",
@@ -203,81 +202,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Dashboard",
 ])
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — PRÉSENTATION
-# ══════════════════════════════════════════════════════════════════════════════
-with tab1:
-    st.markdown("# AI Business Intelligence Platform")
-    st.markdown("---")
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Datasets",  "4")
-    c2.metric("Modèles ML", "8")
-    c3.metric("Tâches",    "Régression + Classification")
-    c4.metric("Déploiement", "Streamlit Cloud")
-
-    st.markdown("---")
-    st.markdown("## Problème traité")
-    st.markdown("""
-Les entreprises ont besoin d'une plateforme centralisée pour :
-- **Exploiter** des données réelles métier (énergie, revenus, fraude, churn)
-- **Prédire** des KPIs critiques grâce au Machine Learning
-- **Tracer** chaque expérimentation pour la reproductibilité (MLOps)
-- **Analyser** les données avec l'IA générative (Gemini)
-- **Déployer** une solution cloud accessible publiquement
-""")
-
-    st.markdown("## Architecture de la solution")
-    ca, cb = st.columns(2)
-    with ca:
-        st.markdown("""
-**Couche Données**
-- 4 datasets CSV réels
-- Pipeline de nettoyage automatique
-- Gestion valeurs manquantes (imputation médiane / mode)
-- Encodage One-Hot des variables catégorielles
-- Séparation 80/20 train/test
-
-**Couche ML (8 modèles)**
-- Linear Regression / Logistic Regression
-- Random Forest (Reg + Clf)
-- Gradient Boosting (Reg + Clf)
-- XGBoost (Reg + Clf)
-""")
-    with cb:
-        st.markdown("""
-**Couche MLOps**
-- MLflow : tracking paramètres, métriques, artefacts
-- DagsHub : registre distant + UI expériences
-- Sélection automatique du modèle Champion
-- Enregistrement dans le Model Registry MLflow
-- Chargement automatique depuis MLflow
-
-**Couche Application**
-- Streamlit multi-onglets (5 onglets)
-- Prédiction unitaire & batch CSV
-- Analyse Gemini AI en langage naturel
-- Logging complet de toutes les actions
-- Secrets sécurisés (.env local / Streamlit Cloud)
-""")
-
-    st.markdown("## Datasets utilisés")
-    for name, cfg in config.DATASETS.items():
-        with st.expander(name):
-            c_a, c_b = st.columns([2,1])
-            with c_a:
-                st.markdown(cfg["description"])
-                st.markdown(f'<span class="pill">Task: {cfg["task"]}</span> <span class="pill">Target: {cfg["target"]}</span>', unsafe_allow_html=True)
-            with c_b:
-                sub_df = pd.read_csv(cfg["file"])
-                st.metric("Lignes", f"{len(sub_df):,}")
-                st.metric("Colonnes", sub_df.shape[1])
-
-    st.markdown("## Technologies utilisées")
-    techs = ["Python 3.11", "Streamlit", "MLflow", "DagsHub", "GitHub",
-             "Google Gemini API", "scikit-learn", "XGBoost", "Plotly",
-             "pandas", "joblib", "python-dotenv"]
-    st.markdown("".join([f'<span class="pill">{t}</span>' for t in techs]), unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
