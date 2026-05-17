@@ -349,79 +349,78 @@ with tab3:
 
     if pipeline is None:
         st.markdown('<div class="warn">Aucun modèle champion disponible.<br>Allez dans l\'onglet <b>Entraînement</b> pour entraîner les modèles, ou cliquez sur <b>Load Champion from MLflow</b> dans la sidebar.</div>', unsafe_allow_html=True)
-        st.stop()
+    else:
+        src = st.session_state.champion_source or "Session"
+        st.markdown(f'<div class="ok">Modèle Champion chargé : <b>{st.session_state.champion_name}</b><br> Source : {src}</div>', unsafe_allow_html=True)
 
-    src = st.session_state.champion_source or "Session"
-    st.markdown(f'<div class="ok">Modèle Champion chargé : <b>{st.session_state.champion_name}</b><br> Source : {src}</div>', unsafe_allow_html=True)
+        target2 = ds["target"]
+        task2   = ds["task"]
+        feat_cols = [c for c in df.columns if c != target2]
+        num_feats = df[feat_cols].select_dtypes(include=np.number).columns.tolist()
+        cat_feats = df[feat_cols].select_dtypes(include="object").columns.tolist()
 
-    target2 = ds["target"]
-    task2   = ds["task"]
-    feat_cols = [c for c in df.columns if c != target2]
-    num_feats = df[feat_cols].select_dtypes(include=np.number).columns.tolist()
-    cat_feats = df[feat_cols].select_dtypes(include="object").columns.tolist()
+        st.markdown("### Saisir les valeurs des features")
+        user_input = {}
 
-    st.markdown("### Saisir les valeurs des features")
-    user_input = {}
+        # Numeric inputs — 3 per row
+        for i in range(0, len(num_feats), 3):
+            cols = st.columns(3)
+            for j, col_name in enumerate(num_feats[i:i+3]):
+                with cols[j]:
+                    mn  = float(df[col_name].min())
+                    mx  = float(df[col_name].max())
+                    med = float(df[col_name].median())
+                    user_input[col_name] = st.number_input(col_name, mn, mx, med, format="%.4f")
 
-    # Numeric inputs — 3 per row
-    for i in range(0, len(num_feats), 3):
-        cols = st.columns(3)
-        for j, col_name in enumerate(num_feats[i:i+3]):
-            with cols[j]:
-                mn  = float(df[col_name].min())
-                mx  = float(df[col_name].max())
-                med = float(df[col_name].median())
-                user_input[col_name] = st.number_input(col_name, mn, mx, med, format="%.4f")
+        # Categorical inputs
+        if cat_feats:
+            cat_cols_ui = st.columns(min(len(cat_feats), 3))
+            for j, col_name in enumerate(cat_feats):
+                with cat_cols_ui[j % 3]:
+                    options = sorted(df[col_name].dropna().unique().tolist())
+                    user_input[col_name] = st.selectbox(col_name, options)
 
-    # Categorical inputs
-    if cat_feats:
-        cat_cols_ui = st.columns(min(len(cat_feats), 3))
-        for j, col_name in enumerate(cat_feats):
-            with cat_cols_ui[j % 3]:
-                options = sorted(df[col_name].dropna().unique().tolist())
-                user_input[col_name] = st.selectbox(col_name, options)
+        st.markdown("---")
+        if st.button("Prédire", use_container_width=True):
+            try:
+                input_df   = pd.DataFrame([user_input])
+                prediction = pipeline.predict(input_df)[0]
 
-    st.markdown("---")
-    if st.button("Prédire", use_container_width=True):
-        try:
-            input_df   = pd.DataFrame([user_input])
-            prediction = pipeline.predict(input_df)[0]
+                st.markdown("### Résultat de la prédiction")
+                r1, r2_col, r3 = st.columns([1, 2, 1])
+                with r2_col:
+                    if task2 == "regression":
+                        st.metric(label=f"Valeur prédite — {target2}", value=f"{prediction:,.2f}")
+                    else:
+                        classes = {0: ("Négatif", "green"), 1: ("Positif / Fraude", "red")}
+                        label, _ = classes.get(int(prediction), (f"Classe {int(prediction)}", "blue"))
+                        st.metric(label=f"Prédiction — {target2}", value=label)
+                        try:
+                            proba = pipeline.predict_proba(input_df)[0]
+                            st.markdown(f"**Confiance :** {max(proba)*100:.1f}%")
+                            prob_df = pd.DataFrame({"Classe": [str(i) for i in range(len(proba))], "Probabilité": proba})
+                            fig_p = px.bar(prob_df, x="Classe", y="Probabilité", template="plotly_white",
+                                           color="Classe", color_discrete_sequence=["#dc2626","#991b1b"],
+                                           title="Distribution des probabilités")
+                            fig_p.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False)
+                            st.plotly_chart(fig_p, use_container_width=True)
+                        except Exception:
+                            pass
 
-            st.markdown("### Résultat de la prédiction")
-            r1, r2_col, r3 = st.columns([1, 2, 1])
-            with r2_col:
-                if task2 == "regression":
-                    st.metric(label=f"Valeur prédite — {target2}", value=f"{prediction:,.2f}")
-                else:
-                    classes = {0: ("Négatif", "green"), 1: ("Positif / Fraude", "red")}
-                    label, _ = classes.get(int(prediction), (f"Classe {int(prediction)}", "blue"))
-                    st.metric(label=f"Prédiction — {target2}", value=label)
-                    try:
-                        proba = pipeline.predict_proba(input_df)[0]
-                        st.markdown(f"**Confiance :** {max(proba)*100:.1f}%")
-                        prob_df = pd.DataFrame({"Classe": [str(i) for i in range(len(proba))], "Probabilité": proba})
-                        fig_p = px.bar(prob_df, x="Classe", y="Probabilité", template="plotly_white",
-                                       color="Classe", color_discrete_sequence=["#dc2626","#991b1b"],
-                                       title="Distribution des probabilités")
-                        fig_p.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False)
-                        st.plotly_chart(fig_p, use_container_width=True)
-                    except Exception:
-                        pass
+                logger.log_prediction(dataset_choice, st.session_state.champion_name or "champion", user_input, prediction)
 
-            logger.log_prediction(dataset_choice, st.session_state.champion_name or "champion", user_input, prediction)
+                with st.expander("Interprétation par Gemini AI"):
+                    with st.spinner("Gemini analyse..."):
+                        try:
+                            txt = gemini_ai.analyze_prediction_result(dataset_choice, target2, task2, user_input, prediction)
+                            st.markdown(txt)
+                            logger.log_gemini_query(dataset_choice, "prediction interpretation")
+                        except Exception as e:
+                            st.error(gemini_ai.user_error_message(e))
 
-            with st.expander("Interprétation par Gemini AI"):
-                with st.spinner("Gemini analyse..."):
-                    try:
-                        txt = gemini_ai.analyze_prediction_result(dataset_choice, target2, task2, user_input, prediction)
-                        st.markdown(txt)
-                        logger.log_gemini_query(dataset_choice, "prediction interpretation")
-                    except Exception as e:
-                        st.error(gemini_ai.user_error_message(e))
-
-        except Exception as e:
-            st.error(f"Erreur de prédiction : {e}")
-            st.exception(e)
+            except Exception as e:
+                st.error(f"Erreur de prédiction : {e}")
+                st.exception(e)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
