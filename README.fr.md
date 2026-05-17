@@ -5,6 +5,7 @@
 Ce guide explique **tout le fonctionnement** de l’application pour que tu puisses l’utiliser et la **présenter** devant un jury ou un client.
 
 ---
+Live URL: aibusinessapp-qj3cmkjnab6iqbvqyx9nkn.streamlit.app
 
 ## Table des matières
 
