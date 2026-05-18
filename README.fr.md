@@ -1,4 +1,4 @@
-# 🧠 AI Business Intelligence — Documentation complète (français)
+# 🧠 SmartBI — Documentation complète (français)
 
 > **Plateforme MLOps** : interface Streamlit · 4 datasets métier · 8 modèles ML · tracking MLflow/DagsHub · prédictions · Google Gemini · journal d’actions.
 

@@ -1,4 +1,4 @@
-# 🧠 AI Business Intelligence — دليل شامل (عربي)
+# 🧠 SmartBI — دليل شامل (عربي)
 
 > **منصة MLOps**: واجهة Streamlit · 4 مجموعات بيانات · 8 نماذج ML · تتبع MLflow/DagsHub · تنبؤات · Google Gemini · سجل عمليات.
 

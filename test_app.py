@@ -1,4 +1,4 @@
-"""Smoke tests for AI Business Intelligence App."""
+"""Smoke tests for SmartBI App."""
 import warnings
 warnings.filterwarnings("ignore")
 

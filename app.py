@@ -1,5 +1,5 @@
 """
-AI Business Intelligence App
+SmartBI App
 Full MLOps platform: Streamlit + MLflow + DagsHub + Gemini AI
 """
 import warnings
@@ -21,7 +21,7 @@ import logger
 
 # ─── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="AI Business Intelligence",
+    page_title="SmartBI",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -230,7 +230,7 @@ for k, v in [
 
 # ─── Sidebar ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## AI Business Intelligence")
+    st.markdown("## SmartBI")
     st.markdown("---")
     st.markdown("### Select Dataset")
     dataset_choice = st.selectbox("Dataset", list(config.DATASETS.keys()), label_visibility="collapsed")

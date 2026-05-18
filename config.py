@@ -1,4 +1,4 @@
-"""Central configuration for the AI Business Intelligence App."""
+"""Central configuration for the SmartBI App."""
 import os
 from dotenv import load_dotenv
 
